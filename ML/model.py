@@ -15,6 +15,8 @@ BATCH_SIZE = 128
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 EMBEDDING_SIZE = 1024
+IVF_INDEX_PATH = os.path.join(os.path.dirname(__file__), "ivf_index_yamnet.faiss")
+N_LIST = 100  # число кластеров для IVF
 
 def load_yamnet_model():
     import tensorflow_hub as hub
@@ -87,10 +89,27 @@ def build_or_load_embeddings(mp3_files):
         print(f"Errors for {len(errors)} files; see errors_yamnet.txt")
     return all_embs, all_fns
 
-def find_similar_tracks(embeddings, filenames, top_k=10):
+def build_or_load_ivf_index(embeddings):
     d = embeddings.shape[1]
-    index = faiss.IndexFlatL2(d)
-    index.add(embeddings)
+    quantizer = faiss.IndexFlatL2(d)
+    index = faiss.IndexIVFFlat(quantizer, d, N_LIST, faiss.METRIC_L2)
+    if os.path.exists(IVF_INDEX_PATH):
+        index = faiss.read_index(IVF_INDEX_PATH)
+        if index.ntotal != embeddings.shape[0]:
+            index = faiss.IndexIVFFlat(quantizer, d, N_LIST, faiss.METRIC_L2)
+            index.train(embeddings)
+            index.add(embeddings)
+            faiss.write_index(index, IVF_INDEX_PATH)
+    else:
+        if not index.is_trained:
+            index.train(embeddings)
+        index.add(embeddings)
+        faiss.write_index(index, IVF_INDEX_PATH)
+    return index
+
+def find_similar_tracks(embeddings, filenames, top_k=10):
+    index = build_or_load_ivf_index(embeddings)
+    index.nprobe = min(10, N_LIST)
     D, I = index.search(embeddings, top_k+1)
     results = []
     for i in range(len(filenames)):
@@ -114,9 +133,8 @@ def find_similar_for_file(query_file, top_k=10):
         idx = filenames.index(os.path.abspath(query_file))
     except ValueError:
         raise ValueError(f"File {query_file} not found in precomputed filenames.")
-    d = embeddings.shape[1]
-    index = faiss.IndexFlatL2(d)
-    index.add(embeddings)
+    index = build_or_load_ivf_index(embeddings)
+    index.nprobe = min(10, N_LIST)
     D, I = index.search(embeddings[idx:idx+1], top_k+1)
     sims = []
     for dist, i in zip(D[0], I[0]):
@@ -133,21 +151,17 @@ def find_similar_for_new_file(query_file, top_k=10):
     embeddings = np.load(EMB_PATH)
     with open(FN_PATH) as f:
         filenames = [line.strip() for line in f]
-    
     audio, sr = sf.read(query_file)
     if len(audio.shape) > 1:
         audio = np.mean(audio, axis=1)
     if sr != 16000:
         audio = librosa.resample(audio, orig_sr=sr, target_sr=16000)
-    
     scores, embeddings_new, spectrogram = yamnet_model(audio)
     emb_mean = embeddings_new.numpy().mean(axis=0)
     emb_norm = emb_mean / (np.linalg.norm(emb_mean) + 1e-8)
     emb_norm = emb_norm.astype('float32').reshape(1, -1)
-    
-    d = embeddings.shape[1]
-    index = faiss.IndexFlatIP(d)
-    index.add(embeddings)
+    index = build_or_load_ivf_index(embeddings)
+    index.nprobe = min(10, N_LIST)
     D, I = index.search(emb_norm, top_k)
     sims = []
     for dist, i in zip(D[0], I[0]):
@@ -157,6 +171,7 @@ def find_similar_for_new_file(query_file, top_k=10):
 if __name__ == "__main__":
     mp3s = find_mp3_files(DATA_DIR)
     embeddings, fnames = build_or_load_embeddings(mp3s)
+    build_or_load_ivf_index(embeddings)
     sims = find_similar_tracks(embeddings, fnames, top_k=10)
     with open("similar_tracks_yamnet.txt", "w") as f:
         for track, sim_list in sims:

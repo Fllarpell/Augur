@@ -106,9 +106,9 @@ with search_tab:
                 results = model.find_similar_for_new_file(tmp_path, top_k=10)
                 latency = time.time() - start_time
                 st.success(f"Top 10 similar tracks for '{uploaded_file.name}': (Latency: {latency:.2f} sec)")
-                for i, (track, dist) in enumerate(sorted(results, key=lambda x: x[1], reverse=True), 1):
+                for i, (track, dist) in enumerate(sorted(results, key=lambda x: x[1]), 1):
                     filename = os.path.basename(track)
-                    st.write(f"{i}. {filename} (similarity: {dist:.4f})")
+                    st.write(f"{i}. {filename} (distance: {dist:.4f})")
                     try:
                         with open(track, "rb") as audio_file:
                             audio_bytes = audio_file.read()
