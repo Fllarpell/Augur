@@ -144,6 +144,26 @@ for path, similarity in results:
 
 ---
 
+## Metrics & Analytics
+
+The web interface provides detailed analytics for evaluating the quality of music recommendations:
+
+- **Offline metrics:**
+  - Precision@K, Recall@K, nDCG@K, MRR, Cosine Similarity
+  - Calculated for each genre and for uploaded tracks
+- **Genre analytics:**
+  - Aggregated metrics for top genres
+  - Per-track metrics tables for each genre
+  - Downloadable CSV tables for further analysis
+- **Multi-label genre statistics:**
+  - Jaccard index for genre overlap between recommendations and ground truth
+  - Distribution of genres per track
+  - Detailed per-track Jaccard tables for each genre
+
+All statistics and tables are available in the Streamlit interface after uploading your collection and/or a test track.
+
+---
+
 ## License
 
 MIT
