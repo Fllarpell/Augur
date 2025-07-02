@@ -16,7 +16,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 EMBEDDING_SIZE = 1024
 IVF_INDEX_PATH = os.path.join(os.path.dirname(__file__), "ivf_index_yamnet.faiss")
-N_LIST = 100  # число кластеров для IVF
+N_LIST = 100
 
 def load_yamnet_model():
     import tensorflow_hub as hub

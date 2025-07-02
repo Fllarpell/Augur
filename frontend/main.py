@@ -17,20 +17,14 @@ st.title("Augur")
 with st.expander("ℹ️ Metrics explanation"):
     st.markdown("""
     **Offline metrics:**
-    - **Precision@K**: Fraction of recommended tracks in top-K that are relevant (same genre).
-    - **Recall@K**: Fraction of all relevant tracks (same genre) that are in top-K recommendations.
-    - **nDCG@K**: Ranking quality, higher if relevant tracks are ranked higher.
-    - **MRR**: Reciprocal of the rank of the first relevant result.
-    - **Cosine Similarity**: Mean and std of similarity scores for top-K.
-    
-    **Online metrics:**
-    - **Latency**: Time to compute recommendations.
-    - **Engagement**: Number of audio plays in session.
-    - **CTR**: Click-through rate (audio clicks / recommendations).
-    - **Session length**: Time since session start.
+    - **Precision@K**: Fraction of recommended tracks in top-K that are relevant (same genre)
+    - **Recall@K**: Fraction of all relevant tracks (same genre) that are in top-K recommendations
+    - **nDCG@K**: Ranking quality, higher if relevant tracks are ranked higher
+    - **MRR**: Reciprocal of the rank of the first relevant result
+    - **Cosine Similarity**: Mean and std of similarity scores for top-K
     
     **Ground truth:**
-    - For each test track, all tracks of the same genre (from FMA metadata) that exist in your collection are considered relevant.
+    - For each test track, all tracks of the same genre (from FMA metadata)
     """)
 
 @st.cache_data(show_spinner=True)
@@ -100,7 +94,7 @@ with search_tab:
             with NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
                 tmp.write(uploaded_file.read())
                 tmp_path = tmp.name
-            st.session_state['uploaded_file_path'] = tmp_path  # сохраняем путь к временному файлу
+            st.session_state['uploaded_file_path'] = tmp_path
             try:
                 start_time = time.time()
                 results = model.find_similar_for_new_file(tmp_path, top_k=10)
@@ -195,14 +189,12 @@ with metrics_tab:
                 all_metrics.append(metrics)
                 track_ids.append(tid)
             if all_metrics:
-                # Подробная таблица по трекам выбранного жанра
                 df_tracks = pd.DataFrame(all_metrics, index=track_ids).round(3)
                 st.subheader(f"Detailed metrics for {len(df_tracks)} tracks of genre '{selected_genre}'")
                 st.dataframe(df_tracks)
                 csv_tracks = df_tracks.to_csv().encode('utf-8')
                 st.download_button("Download track metrics as CSV", csv_tracks, f"metrics_{selected_genre}_tracks.csv", "text/csv")
 
-                # Агрегированные метрики по жанру (как раньше)
                 all_keys = set().union(*(m.keys() for m in all_metrics if isinstance(m, dict)))
                 mean_metrics = {}
                 for k in all_keys:
