@@ -12,7 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from ML import model
 from ML.test_search import precision_at_k, recall_at_k, mean_reciprocal_rank, ndcg, avg_cosine_similarity
 
-st.title("Music Track Similarity Search")
+st.title("Augur")
 
 with st.expander("ℹ️ Metrics explanation"):
     st.markdown("""
